@@ -23,11 +23,12 @@ dev_mode=false # Developer mode toggle.
 [openai]
 # You can find your API key at https://platform.openai.com/account/api-keys.
 rate_limit = -1 # Rate limit for API calls (-1 for no limit).
-model = "gpt-4-vision-preview" # Model name, indicating the use of GPT-4 with vision capabilities.
+model = "gpt-4o" # Model name, indicating the use of GPT-4 with vision capabilities.
 temperature = 0 # Temperature setting for GPT's responses, controlling randomness.
 
 [oss_model]
 # Reserved for future updates on open-source models.
+model = "llama-3.2-vision"
 
 [playwright]
 save_video = false # Toggle to save Playwright recordings. Can be slow during saving, mainly for experimental use.

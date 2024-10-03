@@ -26,7 +26,9 @@ import logging
 import os
 import warnings
 from dataclasses import dataclass
+import sys
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import toml
 import torch
 from aioconsole import ainput, aprint
@@ -37,12 +39,13 @@ from data_utils.prompts import generate_prompt, format_options
 from demo_utils.browser_helper import (normal_launch_async, normal_new_context_async,
                                        get_interactive_elements_with_playwright, select_option, saveconfig)
 from demo_utils.format_prompt import format_choices, format_ranking_input, postprocess_action_lmm
-from demo_utils.inference_engine import OpenaiEngine
+from demo_utils.inference_engine import LlamaBedrockEngine
 from demo_utils.ranking_model import CrossEncoder, find_topk
 from demo_utils.website_dict import website_dict
 
 # Remove Huggingface internal warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -182,7 +185,8 @@ async def main(config, base_dir) -> None:
     trace_sources = config["playwright"]["trace"]["sources"]
 
     # Initialize Inference Engine based on OpenAI API
-    generation_model = OpenaiEngine(**openai_config, )
+    #generation_model = OpenaiEngine(**openai_config, )
+    generation_model = LlamaBedrockEngine()
 
     # Load ranking model for prune candidate elements
     ranking_model = None

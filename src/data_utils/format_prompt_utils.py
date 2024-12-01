@@ -208,17 +208,18 @@ def generate_new_referring_prompt(referring_description="", element_format="", a
 def format_options(choices):
     option_text = ""
     abcd = ''
+    non_abcd = ''
 
-    # Start with "None of the options" as choice A
-    multi_choice = 'A. None of the options match the correct element'
-
-    # Continue with other choices starting from B
+    multi_choice = ''
     for multichoice_idx, choice in enumerate(choices):
-        multi_choice += f"{generate_option_name(multichoice_idx + 1)}. {choice[1]}\n"
-        abcd += f"{generate_option_name(multichoice_idx + 1)}, "
+        multi_choice += f"{generate_option_name(multichoice_idx)}. {choice[1]}\n"
+        abcd += f"{generate_option_name(multichoice_idx)}, "
 
-    # Update instruction text to reference option A
-    option_text += f"If none of these elements match your target element, please select A. None of the options match the correct element.\n"
+        non_abcd = generate_option_name(multichoice_idx + 1)
+
+    multi_choice += f"{non_abcd}. None of the other options match the correct element"
+    # option_text += abcd
+    option_text += f"If none of these elements match your target element, please select {non_abcd}. None of the other options match the correct element.\n"
 
     option_text += (multi_choice + '\n\n')
     return option_text

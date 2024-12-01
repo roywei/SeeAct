@@ -14,7 +14,7 @@
 # limitations under the License.
 import os
 import time
-
+import boto3
 import backoff
 import openai
 from openai import (
@@ -23,9 +23,10 @@ from openai import (
     APIError,
     RateLimitError,
 )
-import requests
 import base64
-
+from PIL import Image
+import io
+from pprint import pformat
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
@@ -220,3 +221,69 @@ class OpenaiEngine_MindAct(Engine):
                     + self.request_interval
             )
         return [choice.message.content for choice in response.choices]
+
+class LlamaBedrockEngine(Engine):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Set the model name for Llama 3.2 Vision
+        self.model = "us.meta.llama3-2-11b-instruct-v1:0"  # Replace with the correct model identifier
+        #self.model = "your_custom_model_arn"
+        self.bedrock_runtime = boto3.client("bedrock-runtime", 
+                               aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                               aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+                               aws_session_token=os.environ["AWS_SESSION_TOKEN"])
+        
+
+
+    def encode_image(self, image_path):
+        with Image.open(image_path) as img:
+            max_size = 1120
+            ratio = min(max_size / img.width, max_size / img.height)
+            new_size = (int(img.width * ratio), int(img.height * ratio))
+            
+            # Resize the image
+            img = img.resize(new_size, Image.LANCZOS)
+
+            # Convert to bytes directly without base64 encoding
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            return buffer.getvalue()
+
+    def generate(self, prompt: list = None, max_new_tokens=4096, temperature=None, model=None, image_path=None,
+                 ouput__0=None, turn_number=0, **kwargs):
+        # Prepare the messages for litellm
+        prompt0, prompt1, prompt2 = prompt
+        image_bytes = self.encode_image(image_path) if image_path else None
+
+        # Construct the messages based on the turn number
+        if turn_number == 0:
+            messages = [
+                {"role": "user", "content": [{"text": f"<s>[INST] <<SYS>>{prompt0}<</SYS>>{prompt1}[/INST]"}]}
+            ]
+            if image_bytes:
+                messages[0]["content"].insert(0, {"image": {"format": "png", "source": {"bytes": image_bytes}}})
+
+        elif turn_number == 1:
+            if ouput__0 is None:
+                raise ValueError("ouput__0 cannot be None when turn_number is 1")
+            messages = [
+               {"role": "user", "content": [{"text": f"<s>[INST] <<SYS>>{prompt0}<</SYS>>{prompt1}[/INST]"}]}
+            ]
+            if image_bytes:
+                messages[0]["content"].insert(0, {"image": {"format": "png", "source": {"bytes": image_bytes}}})
+            messages.append({
+            "role": "assistant",
+            "content": [
+                {"text": ouput__0}
+            ]
+            })
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"text": prompt2}
+                ]
+            })
+        response = self.bedrock_runtime.converse(
+            modelId=self.model,
+            messages=messages)
+        return response["output"]["message"]["content"][0]["text"]
